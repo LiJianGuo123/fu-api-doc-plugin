@@ -1,6 +1,6 @@
 package com.wdf.fudoc.test.action.editor;
 
-import com.intellij.json.JsonFileType;
+import com.wdf.fudoc.compat.JsonFileTypeCompat;
 import com.intellij.openapi.actionSystem.*;
 import com.intellij.openapi.command.WriteCommandAction;
 import com.intellij.openapi.editor.Editor;
@@ -38,7 +38,7 @@ public class FuEditorFormatAction extends AnAction {
             if (editor != null && e.getProject() != null) {
                 PsiFile file = PsiDocumentManager.getInstance(e.getProject()).getPsiFile(editor.getDocument());
                 if (Objects.nonNull(file) && FuStringUtils.isNotBlank(file.getName())) {
-                    e.getPresentation().setEnabledAndVisible(file.getName().equals(FuDocConstants.FU_DOC_FILE + JsonFileType.DEFAULT_EXTENSION));
+                    e.getPresentation().setEnabledAndVisible(file.getName().equals(FuDocConstants.FU_DOC_FILE + "json"));
                 }
             } else {
                 e.getPresentation().setEnabledAndVisible(false);

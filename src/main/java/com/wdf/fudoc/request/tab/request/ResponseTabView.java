@@ -3,7 +3,7 @@ package com.wdf.fudoc.request.tab.request;
 import cn.hutool.core.io.FileUtil;
 import cn.hutool.http.HttpResponse;
 import cn.hutool.json.JSONUtil;
-import com.intellij.json.JsonFileType;
+import com.wdf.fudoc.compat.JsonFileTypeCompat;
 import com.intellij.openapi.Disposable;
 import com.intellij.openapi.project.Project;
 import com.intellij.ui.tabs.TabInfo;
@@ -56,7 +56,7 @@ public class ResponseTabView implements FuTab, HttpCallback {
         this.slidePanel = slidePanel;
         this.responseErrorView = new ResponseErrorView(disposable);
         this.responseFileView = new ResponseFileView();
-        this.fuEditorComponent = FuEditorComponent.create(JsonFileType.INSTANCE, "", disposable);
+        this.fuEditorComponent = FuEditorComponent.create(JsonFileTypeCompat.getJsonFileType(), "", disposable);
         this.rootPanel = new JPanel(new BorderLayout());
         switchPanel(1, this.fuEditorComponent.getMainPanel());
     }

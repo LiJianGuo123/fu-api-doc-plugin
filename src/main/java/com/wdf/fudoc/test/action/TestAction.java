@@ -104,7 +104,8 @@ public class TestAction extends AnAction {
             }
         }
         RequestBuilder<RestClientRequest, RestClientFormBodyPart> requestBuilder = new RestClientRequestBuilder();
-        HttpRequestConfig requestConfig = HttpRequestPsiConverter.toRequestConfig(firstRequest);
+        // TODO: IDEA 2025 HttpRequestPsiConverter API变更
+        // HttpRequestConfig requestConfig = HttpRequestPsiConverter.toRequestConfig(firstRequest);
 //        try {
 //            RestClientRequest restClientRequest = HttpRequestPsiConverter.convertFromHttpRequest(firstRequest, substitutor, requestBuilder);
 //            CurlCopyPastePreProcessor preProcessor = new CurlCopyPastePreProcessor();
