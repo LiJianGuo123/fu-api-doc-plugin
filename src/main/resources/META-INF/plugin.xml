@@ -93,6 +93,14 @@
                     order="last"
                     factoryClass="com.wdf.fudoc.request.view.toolwindow.FuDocToolWindowFactory"/>
 
+        <toolWindow id="Fu API List"
+                    icon="FuDocIcons.HTTP"
+                    anchor="right"
+                    secondary="false"
+                    doNotActivateOnStart="true"
+                    order="last"
+                    factoryClass="com.wdf.fudoc.apilist.view.ApiListToolWindowFactory"/>
+
         <!--
                 <toolWindow id="Fu Console"
                             icon="FuDocIcons.FU_DOC"
