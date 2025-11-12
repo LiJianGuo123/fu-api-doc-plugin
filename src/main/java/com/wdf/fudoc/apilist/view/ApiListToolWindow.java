@@ -52,6 +52,12 @@ public class ApiListToolWindow extends SimpleToolWindowPanel {
     private SearchTextField searchField;
     private GroupType currentGroupType = GroupType.MODULE;
 
+    // 缓存完整的 API 列表,用于搜索过滤
+    private List<ApiListItem> cachedApiList = new ArrayList<>();
+
+    // 防抖定时器
+    private javax.swing.Timer searchTimer;
+
     public ApiListToolWindow(@NotNull Project project) {
         super(true, true);
         this.project = project;
@@ -142,20 +148,25 @@ public class ApiListToolWindow extends SimpleToolWindowPanel {
 
         // 创建搜索框
         searchField = new SearchTextField(true);
+
+        // 初始化防抖定时器 (300ms 延迟)
+        searchTimer = new javax.swing.Timer(300, e -> performFilter());
+        searchTimer.setRepeats(false);
+
         searchField.addDocumentListener(new javax.swing.event.DocumentListener() {
             @Override
             public void insertUpdate(javax.swing.event.DocumentEvent e) {
-                filterTree();
+                scheduleFilter();
             }
 
             @Override
             public void removeUpdate(javax.swing.event.DocumentEvent e) {
-                filterTree();
+                scheduleFilter();
             }
 
             @Override
             public void changedUpdate(javax.swing.event.DocumentEvent e) {
-                filterTree();
+                scheduleFilter();
             }
         });
 
@@ -224,18 +235,28 @@ public class ApiListToolWindow extends SimpleToolWindowPanel {
                 ApiListCollector collector = ApiListCollector.getInstance(project);
                 List<ApiListItem> apiList = collector.collectAllApis();
 
+                // 缓存数据
+                cachedApiList = apiList;
+
                 // 在 EDT 线程更新 UI
                 ApplicationManager.getApplication().invokeLater(() -> {
-                    if (currentGroupType == GroupType.MODULE) {
-                        buildModuleTree(apiList);
-                    } else {
-                        buildPrefixTree(apiList);
-                    }
+                    buildTree(apiList);
                 });
             } catch (Exception e) {
                 log.error("加载 API 列表失败", e);
             }
         });
+    }
+
+    /**
+     * 构建树 (根据当前分组类型)
+     */
+    private void buildTree(List<ApiListItem> apiList) {
+        if (currentGroupType == GroupType.MODULE) {
+            buildModuleTree(apiList);
+        } else {
+            buildPrefixTree(apiList);
+        }
     }
 
     /**
@@ -539,7 +560,8 @@ public class ApiListToolWindow extends SimpleToolWindowPanel {
     private void switchGroupType(GroupType groupType) {
         if (this.currentGroupType != groupType) {
             this.currentGroupType = groupType;
-            loadApis();
+            // 重新应用当前搜索过滤
+            performFilter();
         }
     }
 
@@ -557,18 +579,71 @@ public class ApiListToolWindow extends SimpleToolWindowPanel {
     }
 
     /**
-     * 过滤树节点
+     * 调度过滤任务 (防抖)
      */
-    private void filterTree() {
+    private void scheduleFilter() {
+        if (searchTimer.isRunning()) {
+            searchTimer.restart();
+        } else {
+            searchTimer.start();
+        }
+    }
+
+    /**
+     * 执行过滤
+     */
+    private void performFilter() {
         String keyword = searchField.getText().trim().toLowerCase();
         if (keyword.isEmpty()) {
-            // 清空搜索,重新加载
-            loadApis();
+            // 清空搜索,显示全部数据
+            buildTree(cachedApiList);
             return;
         }
 
-        // TODO: 实现搜索过滤逻辑
-        // 暂时简单实现:遍历所有节点,隐藏不匹配的节点
+        // 过滤 API 列表
+        List<ApiListItem> filteredList = cachedApiList.stream()
+                .filter(api -> matchesKeyword(api, keyword))
+                .collect(Collectors.toList());
+
+        // 重建树
+        buildTree(filteredList);
+
+        // 如果有结果,展开所有节点以便查看
+        if (!filteredList.isEmpty()) {
+            TreeUtil.expandAll(tree);
+        } else {
+            // 无结果时也要刷新树模型
+            treeModel.reload();
+        }
+    }
+
+    /**
+     * 判断 API 是否匹配关键词
+     * 匹配范围: URL、标题、类名、方法名
+     */
+    private boolean matchesKeyword(ApiListItem api, String keyword) {
+        // 1. 匹配 URL
+        if (api.getUrl() != null && api.getUrl().toLowerCase().contains(keyword)) {
+            return true;
+        }
+
+        // 2. 匹配标题
+        if (api.getTitle() != null && api.getTitle().toLowerCase().contains(keyword)) {
+            return true;
+        }
+
+        // 3. 匹配类名
+        if (api.getClassName() != null && api.getClassName().toLowerCase().contains(keyword)) {
+            return true;
+        }
+
+        // 4. 匹配方法名
+        if (api.getPsiMethod() != null && api.getPsiMethod().getName().toLowerCase().contains(keyword)) {
+            return true;
+        }
+
+        // 5. 匹配请求类型
+        return api.getRequestType() != null && api.getRequestType().getRequestType().toLowerCase().contains(keyword);
     }
 
     /**
