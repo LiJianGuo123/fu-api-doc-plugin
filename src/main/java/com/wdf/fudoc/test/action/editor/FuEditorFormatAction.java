@@ -37,8 +37,12 @@ public class FuEditorFormatAction extends AnAction {
             Editor editor = e.getData(CommonDataKeys.EDITOR);
             if (editor != null && e.getProject() != null) {
                 PsiFile file = PsiDocumentManager.getInstance(e.getProject()).getPsiFile(editor.getDocument());
-                if (Objects.nonNull(file) && FuStringUtils.isNotBlank(file.getName())) {
-                    e.getPresentation().setEnabledAndVisible(file.getName().equals(FuDocConstants.FU_DOC_FILE + "json"));
+                if (Objects.nonNull(file)) {
+                    // IDEA 2025.1+ 修复: 使用 JsonFileTypeCompat 判断文件类型,而不是硬编码文件名
+                    boolean isJsonFile = JsonFileTypeCompat.isJsonFileType(file.getFileType());
+                    e.getPresentation().setEnabledAndVisible(isJsonFile);
+                } else {
+                    e.getPresentation().setEnabledAndVisible(false);
                 }
             } else {
                 e.getPresentation().setEnabledAndVisible(false);

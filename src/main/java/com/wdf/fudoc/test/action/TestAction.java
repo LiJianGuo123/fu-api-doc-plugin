@@ -56,11 +56,12 @@ public class TestAction extends AnAction {
     }
 
     private void curlTest(AnActionEvent e) {
-        HttpRequestVariableSubstitutor substitutor = HttpRequestVariableSubstitutor.getDefault(e.getProject(), null);
         //读取http文件
         PsiFile psiFile = e.getData(LangDataKeys.PSI_FILE);
 
         HttpRequest httpRequest = FuRequestUtils.getHttpRequest((HttpRequestPsiFile) psiFile, e.getData(LangDataKeys.EDITOR));
+        // IDEA 2025.1+ API 变更: getDefault() 的 contextFile 参数不再允许为 null
+        HttpRequestVariableSubstitutor substitutor = HttpRequestVariableSubstitutor.getDefault(e.getProject(), (HttpRequestPsiFile) psiFile);
         try {
             Object o = HttpRequestPsiConverter.convertFromHttpRequest(httpRequest, substitutor, (RequestBuilder) (new CurlRequestBuilder()));
             System.out.println(o);
@@ -71,11 +72,12 @@ public class TestAction extends AnAction {
 
 
     private void request(AnActionEvent e) {
-        HttpRequestVariableSubstitutor substitutor = HttpRequestVariableSubstitutor.getDefault(e.getProject(), null);
         //读取http文件
         PsiFile psiFile = e.getData(LangDataKeys.PSI_FILE);
 
         HttpRequest httpRequest = FuRequestUtils.getHttpRequest((HttpRequestPsiFile) psiFile, e.getData(LangDataKeys.EDITOR));
+        // IDEA 2025.1+ API 变更: getDefault() 的 contextFile 参数不再允许为 null
+        HttpRequestVariableSubstitutor substitutor = HttpRequestVariableSubstitutor.getDefault(e.getProject(), (HttpRequestPsiFile) psiFile);
         try {
             Object o = HttpRequestPsiConverter.convertFromHttpRequest(httpRequest, substitutor, (RequestBuilder) (new CurlRequestBuilder()));
         } catch (HttpRequestValidationException e3) {

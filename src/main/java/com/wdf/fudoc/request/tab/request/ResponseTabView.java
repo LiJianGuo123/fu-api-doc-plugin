@@ -3,6 +3,8 @@ package com.wdf.fudoc.request.tab.request;
 import cn.hutool.core.io.FileUtil;
 import cn.hutool.http.HttpResponse;
 import cn.hutool.json.JSONUtil;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.SerializationFeature;
 import com.wdf.fudoc.compat.JsonFileTypeCompat;
 import com.intellij.openapi.Disposable;
 import com.intellij.openapi.project.Project;
@@ -103,7 +105,10 @@ public class ResponseTabView implements FuTab, HttpCallback {
                     initRootPane();
                 } else {
                     //请求成功 渲染响应数据到编辑器中
-                    fuEditorComponent.setContent(JSONUtil.formatJsonStr(response.getContent()));
+                    String content = response.getContent();
+                    // IDEA 2025.1+ 修复: 改进 JSON 格式化处理,避免长字符串换行导致双引号丢失
+                    String formattedContent = formatJsonContent(content);
+                    fuEditorComponent.setContent(formattedContent);
                     switchPanel(1, fuEditorComponent.getMainPanel());
                 }
             }
@@ -117,7 +122,12 @@ public class ResponseTabView implements FuTab, HttpCallback {
 
     @Override
     public void doSendBefore(FuHttpRequestData fuHttpRequestData) {
-        //do nothing
+        // 请求发送前预留钩子
+    }
+
+    @Override
+    public void doSendAfter(FuHttpRequestData fuHttpRequestData) {
+        // 请求完成后,initData 会被调用来显示响应结果
     }
 
     @Override
@@ -152,6 +162,40 @@ public class ResponseTabView implements FuTab, HttpCallback {
     public void initRootPane() {
         if (Objects.nonNull(responseFileView)) {
             responseFileView.initRootPane();
+        }
+    }
+
+    /**
+     * 格式化 JSON 内容
+     * 避免长字符串换行时导致格式问题
+     *
+     * @param content 原始内容
+     * @return 格式化后的内容
+     */
+    private String formatJsonContent(String content) {
+        if (FuStringUtils.isBlank(content)) {
+            return content;
+        }
+        try {
+            // IDEA 2025.1+ 修复: 使用 Jackson 进行 JSON 格式化
+            // Jackson 会正确处理字符串中的转义字符,不会将 \r\n 展开为真实换行
+            ObjectMapper mapper = new ObjectMapper();
+            mapper.enable(SerializationFeature.INDENT_OUTPUT);
+
+            // 先解析 JSON,再格式化输出
+            Object json = mapper.readValue(content, Object.class);
+            return mapper.writerWithDefaultPrettyPrinter().writeValueAsString(json);
+        } catch (Exception e) {
+            // 如果 Jackson 格式化失败,尝试使用 Hutool
+            try {
+                if (JSONUtil.isTypeJSON(content)) {
+                    return JSONUtil.formatJsonStr(content);
+                }
+            } catch (Exception ex) {
+                // 忽略
+            }
+            // 都失败则返回原始内容
+            return content;
         }
     }
 
