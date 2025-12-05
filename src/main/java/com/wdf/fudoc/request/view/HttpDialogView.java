@@ -111,6 +111,8 @@ public class HttpDialogView extends DialogWrapper implements HttpCallback, SendH
     protected void dispose() {
         //当前窗体被销毁了 需要手动移除
         FuRequestManager.remove(this.project, this.httpId);
+        //同步表单数据到 httpRequestData（确保请求参数和响应数据都被保存）
+        doSendBefore(this.httpRequestData);
         //持久化数据
         saveData();
         super.dispose();
@@ -245,6 +247,14 @@ public class HttpDialogView extends DialogWrapper implements HttpCallback, SendH
         if (fuHttpRequestData != null) {
             this.fuTabBuilder.select(ResponseTabView.RESPONSE);
             this.responseTabView.initData(fuHttpRequestData);
+
+            // 请求完成后保存数据（包含响应数据）
+            try {
+                FuRequestManager.saveRequest(project, fuHttpRequestData);
+                FuRequestConfigStorage.get(project).saveData();
+            } catch (Exception e) {
+                log.info("持久化请求数据异常", e);
+            }
 
             // IDEA 2025.1+ 新增: 在底部状态栏显示请求结果
             Integer httpCode = fuHttpRequestData.getHttpCode();

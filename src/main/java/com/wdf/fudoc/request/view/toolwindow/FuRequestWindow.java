@@ -173,6 +173,14 @@ public class FuRequestWindow extends SimpleToolWindowPanel implements DataProvid
                 //填充响应头面板数据
                 this.responseHeaderTabView.initData(fuHttpRequestData);
 
+                // 请求完成后保存数据（包含响应数据）
+                try {
+                    FuRequestManager.saveRequest(project, fuHttpRequestData);
+                    FuRequestConfigStorage.get(project).saveData();
+                } catch (Exception e) {
+                    log.info("持久化请求数据异常", e);
+                }
+
                 // IDEA 2025.1+ 新增: 在底部状态栏显示请求结果
                 Integer httpCode = fuHttpRequestData.getHttpCode();
                 Long time = fuHttpRequestData.getTime();
@@ -207,15 +215,10 @@ public class FuRequestWindow extends SimpleToolWindowPanel implements DataProvid
 
     @Override
     public void doSendHttp() {
+        //同步表单数据到 httpRequestData（确保请求参数都被保存）
+        doSendBefore(httpRequestData);
         sendRequestHandler.doSend(httpRequestData);
-        try {
-            //保存当前请求
-            FuRequestManager.saveRequest(project, httpRequestData);
-            //保存一些配置数据
-            FuRequestConfigStorage.get(project).saveData();
-        } catch (Exception e) {
-            log.info("持久化请求数据异常", e);
-        }
-
+        // 注意：不在这里保存请求，因为 doSend 是异步的
+        // 响应数据会在请求完成后由 doSendAfter 保存
     }
 }
